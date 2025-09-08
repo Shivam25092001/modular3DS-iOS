@@ -7,3 +7,8 @@
 
 import Foundation
 
+public class AuthenticationSDK {
+    public init () {
+        print("-- AuthenticationSDK --")
+    }
+}

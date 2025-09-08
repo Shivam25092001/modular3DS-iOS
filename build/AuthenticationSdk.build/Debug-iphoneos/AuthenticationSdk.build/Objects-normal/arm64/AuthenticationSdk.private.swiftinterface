@@ -1,0 +1,137 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.1.2 effective-5.10 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
+// swift-module-flags: -target arm64-apple-ios18.5 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name AuthenticationSdk
+// swift-module-flags-ignorable:  -interface-compiler-version 6.1.2
+import Foundation
+import Swift
+import ThreeDS_SDK
+import Trident
+import UIKit
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+public enum TransactionError : Swift.Error, Foundation.LocalizedError {
+  case transactionCreationFailed(Swift.String, (any Swift.Error)?)
+  case challengeFailed(Swift.String, (any Swift.Error)?)
+  public var errorDescription: Swift.String? {
+    get
+  }
+}
+public enum AuthenticationError : Swift.Error, Foundation.LocalizedError {
+  case noProviderAvailable(Swift.String)
+  case preferredProviderUnavailable(Swift.String)
+  case sessionNotInitialized(Swift.String)
+  case providerInitializationFailed(Swift.String, (any Swift.Error)?)
+  case transactionCreationFailed(Swift.String, (any Swift.Error)?)
+  case challengeFailed(Swift.String, (any Swift.Error)?)
+  public var errorDescription: Swift.String? {
+    get
+  }
+  public var recoverySuggestion: Swift.String? {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers public class ThreeDSProviderFactory {
+  public static func createProvider(preferredProvider: AuthenticationSdk.ProviderType? = nil) throws -> any AuthenticationSdk.ThreeDSProvider
+  public static func getAvailableProviders() -> [AuthenticationSdk.ProviderType]
+  @objc deinit
+}
+public class AuthenticationSDK {
+  public init()
+  @objc deinit
+}
+public enum ProviderType : Swift.String, Swift.CaseIterable {
+  case netcetera
+  case cardinal
+  case trident
+  public var displayName: Swift.String {
+    get
+  }
+  public init?(rawValue: Swift.String)
+  public typealias AllCases = [AuthenticationSdk.ProviderType]
+  public typealias RawValue = Swift.String
+  nonisolated public static var allCases: [AuthenticationSdk.ProviderType] {
+    get
+  }
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public protocol ThreeDSProvider {
+  func initialize(configuration: AuthenticationSdk.AuthenticationConfiguration?) throws
+  func createSession() throws -> any AuthenticationSdk.ThreeDSSessionProvider
+  func cleanup()
+}
+public protocol ThreeDSSessionProvider {
+  func createTransaction(messageVersion: Swift.String, directoryServerId: Swift.String?, cardNetwork: Swift.String?) throws -> any AuthenticationSdk.ThreeDSTransactionProvider
+}
+public protocol ThreeDSTransactionProvider {
+  func getAuthenticationRequestParameters() throws -> AuthenticationSdk.AuthenticationRequestParameters
+  func doChallenge(viewController: UIKit.UIViewController, challengeParameters: AuthenticationSdk.ChallengeParameters, challengeStatusReceiver: any AuthenticationSdk.ChallengeStatusReceiver, timeOut: Swift.Int) throws
+  func close()
+}
+@_hasMissingDesignatedInitializers public class Transaction {
+  public func getAuthenticationRequestParameters() throws -> AuthenticationSdk.AuthenticationRequestParameters
+  public func doChallenge(viewController: UIKit.UIViewController, challengeParameters: AuthenticationSdk.ChallengeParameters, challengeStatusReceiver: any AuthenticationSdk.ChallengeStatusReceiver, timeOut: Swift.Int) throws
+  public func getProgressView() throws -> AuthenticationSdk.ProgressDialog
+  public func close()
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class ProgressDialog {
+  public func start()
+  public func stop()
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class AuthenticationRequestParameters {
+  final public let sdkTransactionID: Swift.String
+  final public let deviceData: Swift.String
+  final public let sdkEphemeralPublicKey: Swift.String
+  final public let sdkAppID: Swift.String
+  final public let sdkReferenceNumber: Swift.String
+  final public let messageVersion: Swift.String
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class ChallengeParameters {
+  public var threeDSServerTransactionID: Swift.String
+  public var acsTransactionID: Swift.String
+  public var acsRefNumber: Swift.String
+  public var acsSignedContent: Swift.String
+  public var threeDSRequestorAppURL: Swift.String?
+  @objc deinit
+}
+public class CompletionEvent {
+  public init()
+  @objc deinit
+}
+public class ProtocolErrorEvent {
+  public init(errorMessage: Swift.String)
+  public func getErrorMessage() -> Swift.String
+  @objc deinit
+}
+public class RuntimeErrorEvent {
+  public init(errorMessage: Swift.String, errorCode: Swift.String? = nil)
+  public func getErrorMessage() -> Swift.String
+  public func getErrorCode() -> Swift.String?
+  @objc deinit
+}
+public protocol ChallengeStatusReceiver {
+  func completed(_ completionEvent: AuthenticationSdk.CompletionEvent)
+  func cancelled()
+  func timedout()
+  func protocolError(_ protocolErrorEvent: AuthenticationSdk.ProtocolErrorEvent)
+  func runtimeError(_ runtimeErrorEvent: AuthenticationSdk.RuntimeErrorEvent)
+}
+public class AuthenticationSession {
+  public init(publishableKey: Swift.String, customBackendUrl: Swift.String? = nil, customParams: [Swift.String : Any]? = nil, customLogUrl: Swift.String? = nil)
+  public func initThreeDsSession(authIntentClientSecret: Swift.String, configuration: AuthenticationSdk.AuthenticationConfiguration? = nil) throws
+  public func createTransaction(messageVersion: Swift.String, directoryServerId: Swift.String?, cardNetwork: Swift.String?) throws -> AuthenticationSdk.Transaction
+  @objc deinit
+}
+public struct AuthenticationConfiguration {
+  public let apiKey: Swift.String?
+  public let preferredProvider: AuthenticationSdk.ProviderType?
+  public init(apiKey: Swift.String? = nil, preferredProvider: AuthenticationSdk.ProviderType? = nil)
+}
+extension AuthenticationSdk.ProviderType : Swift.Equatable {}
+extension AuthenticationSdk.ProviderType : Swift.Hashable {}
+extension AuthenticationSdk.ProviderType : Swift.RawRepresentable {}
