@@ -88,11 +88,11 @@ class NetceteraTransactionProvider: ThreeDSTransactionProvider {
             netceteraChallengeParams.setThreeDSRequestorAppURL(threeDSRequestorAppURL: url)
         }
         
-        let adapter = NetceteraChallengeStatusAdapter(receiver: challengeStatusReceiver)
+        let netceteraChallengeStatusReceiver = NetceteraChallengeStatusAdapter(receiver: challengeStatusReceiver)
         
         try transaction.doChallenge(
             challengeParameters: netceteraChallengeParams,
-            challengeStatusReceiver: adapter,
+            challengeStatusReceiver: netceteraChallengeStatusReceiver,
             timeOut: timeOut,
             inViewController: viewController
         )

@@ -11,6 +11,7 @@ import AuthenticationSdk
 struct ContentView: View {
     @State private var statusMessage = "Ready to test 3DS SDK"
     @State private var authSession: AuthenticationSession?
+    @State private var currentTransaction: AuthenticationSdk.Transaction?
     
     var body: some View {
         VStack(spacing: 20) {
@@ -40,6 +41,12 @@ struct ContentView: View {
                 .buttonStyle(.bordered)
                 .disabled(authSession == nil)
                 
+                Button("Get Auth Request Parameters") {
+                    getAuthenticationRequestParameters()
+                }
+                .buttonStyle(.bordered)
+                .disabled(currentTransaction == nil)
+                
                 Button("Reset") {
                     resetSession()
                 }
@@ -64,7 +71,7 @@ struct ContentView: View {
             // Create configuration with preferred provider
             let configuration = AuthenticationConfiguration(
                 apiKey: "demo_api_key",
-                preferredProvider: .netcetera
+                preferredProvider: .trident
             )
             
             // Initialize the 3DS session
@@ -73,7 +80,7 @@ struct ContentView: View {
                 configuration: configuration
             )
             
-            statusMessage = "-- 3DS Session initialized successfully!\nProvider: Netcetera (if available)"
+            statusMessage = "-- 3DS Session initialized successfully!\n"
         } catch {
             statusMessage = "-- Failed to initialize 3DS session:\n\(error.localizedDescription)"
             authSession = nil
@@ -90,19 +97,47 @@ struct ContentView: View {
         
         do {
             let transaction = try authSession.createTransaction(
-                messageVersion: "2.1.0",
-                directoryServerId: "demo_directory_server",
-                cardNetwork: "visa"
+                messageVersion: "2.3.1",
+                directoryServerId: "A000000004",
+                cardNetwork: "MASTERCARD"
             )
             
+            currentTransaction = transaction
             statusMessage = "-- Transaction created successfully!\nReady for authentication flow."
         } catch {
             statusMessage = "-- Failed to create transaction:\n\(error.localizedDescription)"
         }
     }
     
+    private func getAuthenticationRequestParameters() {
+        guard let transaction = currentTransaction else {
+            statusMessage = "-- No active transaction. Please create transaction first."
+            return
+        }
+        
+        statusMessage = "Getting authentication request parameters..."
+        
+        do {
+            let authParams = try transaction.getAuthenticationRequestParameters()
+            
+            statusMessage = """
+            Authentication Request Parameters Retrieved:
+            
+            SDK Transaction ID: \(authParams.sdkTransactionID)
+            Message Version: \(authParams.messageVersion)
+            SDK App ID: \(authParams.sdkAppID)
+            SDK Reference Number: \(authParams.sdkReferenceNumber)
+            Device Data: \(authParams.deviceData.prefix(50))...
+            SDK Ephemeral Public Key: \(authParams.sdkEphemeralPublicKey.prefix(50))...
+            """
+        } catch {
+            statusMessage = "-- Failed to get authentication parameters:\n\(error.localizedDescription)"
+        }
+    }
+    
     private func resetSession() {
         authSession = nil
+        currentTransaction = nil
         statusMessage = "Session reset. Ready to test 3DS SDK"
     }
 }

@@ -11,17 +11,24 @@ import UIKit
 #if canImport(Trident)
 import Trident
 
+class Logger: TridentLoggerDelegate {
+    public func trackEvent(withLevel level: String, label: String, value: [String : Any], category: String, subcategory: String) {
+        print("## Trident Event: \(label) \(value) \(category) \(subcategory)")
+    }
+}
+
 class TridentProvider: ThreeDSProvider {
-    private lazy var threeDS2Service: Trident.ThreeDS2Service = {
-        TridentSDK()
+    private lazy var tridentSdk: Trident.TridentSDK = {
+        TridentSDK(logger: Logger())
     }()
     
     func initialize(configuration: AuthenticationConfiguration?) throws {
         // Initialize Trident SDK with configuration
+        try tridentSdk.initialize(configParameters: ConfigParameters(), locale: nil, uiCustomization: UICustomization(), certificateDelegate: nil)
     }
     
     func createSession() throws -> ThreeDSSessionProvider {
-        return TridentSessionProvider(service: threeDS2Service)
+        return TridentSessionProvider(service: tridentSdk)
     }
     
     func cleanup() {
@@ -29,13 +36,15 @@ class TridentProvider: ThreeDSProvider {
 }
 
 class TridentSessionProvider: ThreeDSSessionProvider {
-    private let service: Trident.ThreeDS2Service
+    private let service: Trident.TridentSDK
     
-    init(service: Trident.ThreeDS2Service) {
+    init(service: Trident.TridentSDK) {
         self.service = service
     }
     
     func createTransaction(messageVersion: String, directoryServerId: String?, cardNetwork: String?) throws -> ThreeDSTransactionProvider {
+        let _directoryServerId = try service.getDirectoryServerId(cardNetwork: cardNetwork?.uppercased(with: .autoupdatingCurrent) ?? "")
+        
         let transaction = try service.createTransaction(
             directoryServerId: directoryServerId ?? "",
             messageVersion: messageVersion
@@ -58,12 +67,25 @@ class TridentTransactionProvider: ThreeDSTransactionProvider {
     }
     
     func doChallenge(viewController: UIViewController, challengeParameters: ChallengeParameters, challengeStatusReceiver: ChallengeStatusReceiver, timeOut: Int) throws {
-//        try transaction.doChallenge(
-//            viewController: viewController,
-//            challengeParameters: challengeParameters,
-//            challengeStatusReceiver: challengeStatusReceiver,
-//            timeOut: timeOut
-//        )
+        let tridentChallengeParams = Trident.ChallengeParameters()
+        
+        tridentChallengeParams.threeDSServerTransactionID = challengeParameters.threeDSServerTransactionID
+        tridentChallengeParams.acsTransactionID = challengeParameters.acsTransactionID
+        tridentChallengeParams.acsRefNumber = challengeParameters.acsRefNumber
+        tridentChallengeParams.acsSignedContent = challengeParameters.acsSignedContent
+        
+        if let url = challengeParameters.threeDSRequestorAppURL {
+            tridentChallengeParams.threeDSRequestorAppURL = url
+        }
+        
+        let tridentChallengeStatusReceiver = TridentChallengeStatusAdapter(receiver: challengeStatusReceiver)
+
+        try transaction.doChallenge(
+            viewController: viewController,
+            challengeParameters: tridentChallengeParams,
+            challengeStatusReceiver: tridentChallengeStatusReceiver,
+            timeOut: timeOut
+        )
     }
     
 //    func getProgressView() throws -> ProgressDialog {
@@ -72,6 +94,41 @@ class TridentTransactionProvider: ThreeDSTransactionProvider {
     
     func close() {
         // deinit
+    }
+}
+
+// Adapter to convert Netcetera challenge status callbacks to our interface
+class TridentChallengeStatusAdapter: NSObject, Trident.ChallengeStatusReceiver {
+    private let receiver: ChallengeStatusReceiver
+    
+    init(receiver: ChallengeStatusReceiver) {
+        self.receiver = receiver
+    }
+    
+    func completed(_ completionEvent: Trident.CompletionEvent) {
+        let ourEvent = CompletionEvent()
+        receiver.completed(ourEvent)
+    }
+    
+    func cancelled() {
+        receiver.cancelled()
+    }
+    
+    func timedout() {
+        receiver.timedout()
+    }
+    
+    func protocolError(_ protocolErrorEvent: Trident.ProtocolErrorEvent) {
+        let ourEvent = ProtocolErrorEvent(errorMessage: protocolErrorEvent.getErrorMessage().getErrorDescription())
+        receiver.protocolError(ourEvent)
+    }
+    
+    func runtimeError(_ runtimeErrorEvent: Trident.RuntimeErrorEvent) {
+        let ourEvent = RuntimeErrorEvent(
+            errorMessage: runtimeErrorEvent.getErrorMessage(),
+            errorCode: runtimeErrorEvent.getErrorCode()
+        )
+        receiver.runtimeError(ourEvent)
     }
 }
 

@@ -10,7 +10,6 @@ import AuthenticationSdk
 
 @main
 struct AuthenticationDemoAppApp: App {
-//    var authsdk = AuthenticationSdk()
     
     var body: some Scene {
         WindowGroup {
